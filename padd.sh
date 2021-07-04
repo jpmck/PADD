@@ -17,7 +17,7 @@ LC_NUMERIC=C
 ############################################ VARIABLES #############################################
 
 # VERSION
-padd_version="v3.5.1"
+padd_version="v3.6"
 
 # DATE
 today=$(date +%Y%m%d)
@@ -1164,6 +1164,7 @@ NormalPADD() {
     pico_status=${pico_status_ok}
     mini_status_=${mini_status_ok}
     tiny_status_=${tiny_status_ok}   
+    mega_status_=${mega_status_ok}   
 
     # Start getting our information
     GetVersionInformation ${padd_size}
