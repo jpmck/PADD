@@ -15,6 +15,9 @@ LC_ALL=C
 LC_NUMERIC=C
 
 ############################################ VARIABLES #############################################
+# pihole config location, default is /etc/pihole, you don't need trailing / at the end.
+configlocation=/etc/pihole
+
 
 # VERSION
 padd_version="v3.6"
@@ -118,7 +121,7 @@ pihole_logo_script_retro_3="${green_text}'  ${red_text}'   ${magenta_text}' ${ye
 
 GetFTLData() {
     local ftl_port LINE
-    ftl_port=$(cat /run/pihole-FTL.port 2> /dev/null)
+    ftl_port=$(docker exec pihole cat /run/pihole-FTL.port 2> /dev/null)
     if [[ -n "$ftl_port" ]]; then
         # Open connection to FTL
         exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"
@@ -409,7 +412,7 @@ GetNetworkInformation() {
 
 GetPiholeInformation() {
   # Get Pi-hole status
-  pihole_web_status=$(pihole status web)
+  pihole_web_status=$(docker exec pihole pihole status web)
 
   if [[ ${pihole_web_status} == 1 ]]; then
     pihole_status="Active"
@@ -483,7 +486,7 @@ GetVersionInformation() {
 
   else # the file doesn't exist, create it...
     # Gather core version information...
-    read -r -a core_versions <<< "$(pihole -v -p)"
+    read -r -a core_versions <<< "$(docker exec pihole pihole -v -p)"
     core_version=$(echo "${core_versions[3]}" | tr -d '\r\n[:alpha:]')
     core_version_latest=${core_versions[5]//)}
 
@@ -501,7 +504,7 @@ GetVersionInformation() {
     fi
 
     # Gather web version information...
-    read -r -a web_versions <<< "$(pihole -v -a)"
+    read -r -a web_versions <<< "$(docker exec pihole pihole -v -a)"
     web_version=$(echo "${web_versions[3]}" | tr -d '\r\n[:alpha:]')
     web_version_latest=${web_versions[5]//)}
     if [[ "${web_version_latest}" == "ERROR" ]]; then
@@ -518,7 +521,7 @@ GetVersionInformation() {
     fi
 
     # Gather FTL version information...
-    read -r -a ftl_versions <<< "$(pihole -v -f)"
+    read -r -a ftl_versions <<< "$(docker exec pihole pihole -v -f)"
     ftl_version=$(echo "${ftl_versions[3]}" | tr -d '\r\n[:alpha:]')
     ftl_version_latest=${ftl_versions[5]//)}
     if [[ "${ftl_version_latest}" == "ERROR" ]]; then
@@ -959,7 +962,7 @@ CheckConnectivity() {
 
   while [ $connection_attempts -lt 9 ]; do
 
-    if nc -zw1 google.com 443 2>/dev/null; then
+    if docker exec pihole nc -zw1 google.com 443 2>/dev/null; then
       if [ "$1" = "pico" ] || [ "$1" = "nano" ] || [ "$1" = "micro" ]; then
         echo "Attempt #${connection_attempts} passed..."
       elif [ "$1" = "mini" ]; then
@@ -1171,7 +1174,7 @@ NormalPADD() {
     SizeChecker
 
     # Get Config variables
-    . /etc/pihole/setupVars.conf
+    . ${configlocation}/setupVars.conf
 
     # Move the cursor to top left of console to redraw
     tput cup 0 0
@@ -1228,7 +1231,7 @@ if [[ $# = 0 ]]; then
 
   # Get Our Config Values
   # shellcheck disable=SC1091
-  . /etc/pihole/setupVars.conf
+  . ${configlocation}/setupVars.conf
 
   SizeChecker
 
