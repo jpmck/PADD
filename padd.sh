@@ -26,6 +26,13 @@ today=$(date +%Y%m%d)
 declare -i core_count=1
 core_count=$(cat /sys/devices/system/cpu/kernel_max 2> /dev/null)+1
 
+# SYSTEM INFO
+model=$(cat /proc/device-tree/model | awk '{print $3$5,$7}') 
+sys_cores=$(grep -c "^processor" /proc/cpuinfo)
+cpu_freq=$(lscpu | awk '/CPU max MHz/{if($NF+0>1000)printf "%0.2f GHz\n",$NF/1000; else printf "%.3f MHz\n",$NF}')
+ram_total=$(awk '/MemTotal/ {printf( "%.f\n", $2 / 1024 / 1024 )}' /proc/meminfo)
+ram_used=$(free -m | awk 'NR==2{printf "%s",$3 }')
+
 # COLORS
 black_text=$(tput setaf 0)   # Black
 red_text=$(tput setaf 1)     # Red
@@ -587,6 +594,9 @@ GetVersionInformation() {
     # write it all to the file
     echo "last_check=${today}" > ./piHoleVersion
     {
+      echo "console_width=$console_width"
+      echo "console_height=$console_height"
+    
       echo "core_version=$core_version"
       echo "core_version_latest=$core_version_latest"     
       echo "core_version_heatmap=$core_version_heatmap"
@@ -657,6 +667,13 @@ PrintLogo() {
     CleanPrintf "${padd_logo_2}Pi-hole® ${core_version_heatmap}v${core_version}${reset_text}, Web ${web_version_heatmap}v${web_version}${reset_text}, FTL ${ftl_version_heatmap}v${ftl_version}${reset_text}\e[0K\\n"
     CleanPrintf "${padd_logo_3}PADD ${padd_version_heatmap}${padd_version}${reset_text}${full_status_}${reset_text}\e[0K\\n"
     CleanEcho ""
+  # hyper
+  elif [ "$1" = "hyper" ]; then
+    CleanPrintf "${padd_logo_retro_1}\e[0K\\n"
+    CleanPrintf "${padd_logo_retro_2}         Pi-hole® ${core_version_heatmap}v${core_version}${reset_text}, Web ${web_version_heatmap}v${web_version}${reset_text}, FTL ${ftl_version_heatmap}v${ftl_version}${reset_text}, PADD ${padd_version_heatmap}${padd_version}${reset_text}, RaspberryPI ${green_text}${model}${reset_text}\e[0K\\n"
+    CleanPrintf "${padd_logo_retro_3}         ${pihole_check_box} Core  ${ftl_check_box} FTL   ${mega_status} ${check_box_info} "$(date +%d/%m/%y)", "$(date +%R)" ${reset_text}\e[0K\\n"
+   
+    CleanEcho ""   
   # normal or not defined
   else
     CleanPrintf "${padd_logo_retro_1}\e[0K\\n"
@@ -712,6 +729,17 @@ PrintNetworkInformation() {
       CleanPrintf " %-10s${dhcp_heatmap}%-19s${reset_text} %-10s${dhcp_ipv6_heatmap}%-19s${reset_text}\e[0K\\n" "DHCP:" "${dhcp_status}" "IPv6:" ${dhcp_ipv6_status}
       CleanPrintf "%s\e[0K\\n" "${dhcp_info}"
     fi
+  elif [ "$1" = "hyper" ]; then
+    CleanEcho "${bold_text}NETWORK ============================================================================================${reset_text}"
+    CleanPrintf " %-10s%-19s %-10s%-29s\e[0K\\n" "Hostname:" "${full_hostname}"  #"Date:" "$(date +%d/%m/%y)" #"PID": "${paddPID}"
+    CleanPrintf " %-10s%-19s %-10s%-29s\e[0K\\n" "IPv4 Adr:" "${IPV4_ADDRESS}" "IPv6 Adr:" "${dhcp_ipv6_heatmap}${dhcp_ipv6_status}"${reset_text}
+    CleanEcho "DNS ================================================================================================"
+    CleanPrintf " %-10s%-39s\e[0K\\n" "Servers:" "${dns_information}"
+    CleanPrintf " %-10s${dnssec_heatmap}%-19s${reset_text} %-20s${conditional_forwarding_heatmap}%-9s${reset_text}\e[0K\\n" "DNSSEC:" "${dnssec_status}" "Conditional Fwding:" "${conditional_forwarding_status}"
+
+    CleanEcho "DHCP ==============================================================================================="
+    CleanPrintf " %-10s${dhcp_heatmap}%-19s${reset_text} %-10s${dhcp_ipv6_heatmap}%-9s${reset_text}\e[0K\\n" "DHCP:" "${dhcp_status}" "IPv6 Spt:" "${dhcp_ipv6_status}"
+    CleanPrintf "%s\e[0K\\n" "${dhcp_info}"
   else
     CleanEcho "${bold_text}NETWORK =======================================================================${reset_text}"
     CleanPrintf " %-10s%-19s\e[0K\\n" "Hostname:" "${full_hostname}"
@@ -795,6 +823,17 @@ PrintPiholeStats() {
       CleanPrintf " %-10s%-39s\e[0K\\n" "Top Dmn:" "${top_domain}"
       CleanPrintf " %-10s%-39s\e[0K\\n" "Top Clnt:" "${top_client}"
     fi
+  elif [ "$1" = "hyper" ]; then
+    CleanEcho "${bold_text}STATS ==============================================================================================${reset_text}"
+    CleanPrintf " %-10s%-29s %-10s[%-40s] %-5s\e[0K\\n" "Blocking:" "${domains_being_blocked} domains" "Piholed:" "${ads_blocked_bar}" "${ads_percentage_today}%"
+    CleanPrintf " %-10s%-40s%-29s\e[0K\\n" "Clients:" "${clients}" " ${ads_blocked_today} out of ${dns_queries_today} queries"
+    CleanPrintf " %-10s%-39s\e[0K\\n" "Latest:" "${latest_blocked}"
+    CleanPrintf " %-10s%-39s\e[0K\\n" "Top Ad:" "${top_blocked}"
+    CleanPrintf " %-10s%-39s\e[0K\\n" "Top Dmn:" "${top_domain}"
+    CleanPrintf " %-10s%-39s\e[0K\\n" "Top Clnt:" "${top_client}"
+    CleanEcho "FTL ================================================================================================"
+    CleanPrintf " %-10s%-9s %-10s%-9s %-10s%-9s\e[0K\\n" "PID:" "${ftlPID}" "CPU Use:" "${ftl_cpu}%" "Mem. Use:" "${ftl_mem_percentage}%"
+    CleanPrintf " %-10s%-69s\e[0K\\n" "DNSCache:" "${cache_inserts} insertions, ${cache_deletes} deletions, ${cache_size} total entries"
   else
     CleanEcho "${bold_text}STATS =========================================================================${reset_text}"
     CleanPrintf " %-10s%-19s %-10s[%-40s] %-5s\e[0K\\n" "Blocking:" "${domains_being_blocked} domains" "Piholed:" "${ads_blocked_bar}" "${ads_percentage_today}%"
@@ -845,6 +884,12 @@ PrintSystemInformation() {
 
     # Memory and CPU bar
     CleanPrintf " %-10s[${memory_heatmap}%-10s${reset_text}] %-6s %-10s[${cpu_load_1_heatmap}%-10s${reset_text}] %-5s" "Memory:" "${memory_bar}" "${memory_percent}%" "CPU Load:" "${cpu_bar}" "${cpu_percent}%"
+  elif [ "$1" = "hyper" ]; then
+    CleanEcho "${bold_text}SYSTEM =============================================================================================${reset_text}"
+    # Uptime and memory
+     CleanPrintf " %-10s%-39s %-10s[${memory_heatmap}%-10s${reset_text}] %-6s\\n" "Uptime:" "${system_uptime}" "RAM used $(free -m | awk 'NR==2{printf "%s", $3 }') MB of ${ram_total} GB:  " "${memory_bar}" "${memory_percent}%"${reset_text}  
+    # CPU temp, load, percentage
+     CleanPrintf " %-10s${temp_heatmap}%-10s${reset_text} %-10s${cpu_load_1_heatmap}%-4s${reset_text}, ${cpu_load_5_heatmap}%-4s${reset_text}, ${cpu_load_15_heatmap}%-7s${reset_text} %-10s[${memory_heatmap}%-10s${reset_text}] %-6s" "CPU Temp:" "${temperature}" "CPU Load:" "${cpu_load[0]}" "${cpu_load[1]}" "${cpu_load[2]}" "CPU $(awk 'length==6{printf("%.0f MHz\n", $0/10^3); next} length==7{printf("%.1f GHz\n", $0/10^6)}' /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / ${cpu_freq}: "$(printf '%s')" " "${cpu_bar}" "${cpu_percent}%"
   else
     CleanEcho "${bold_text}SYSTEM ========================================================================${reset_text}"
     # Uptime and memory
@@ -946,9 +991,14 @@ SizeChecker(){
     else
       padd_size="regular"
     fi
-  # Mega
+  # Below Mega. Gives you Regular.
   else
-    padd_size="mega"
+    if [[ "$console_width" -lt "100" ]]; then
+      padd_size="mega"
+    #Below Hyper. Gives you Mega.  
+    else
+      padd_size="hyper"
+    fi  
   fi
 }
 
